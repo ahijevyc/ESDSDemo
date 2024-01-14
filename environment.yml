@@ -1,0 +1,22 @@
+name: uxarray
+channels:
+  - conda-forge
+  - defaults
+  - r
+dependencies:
+  - holoviews
+  - geoviews
+  - datashader
+  - ipykernel
+  - geocat-datafiles
+  - mpas_tools
+  - ca-certificates
+  - certifi
+  - openssl
+  - cmaps
+  - metpy
+  - scikit-learn
+  - cartopy
+  - spatialpandas
+  - uxarray
+prefix: /glade/work/ahijevyc/conda-envs/uxarray
