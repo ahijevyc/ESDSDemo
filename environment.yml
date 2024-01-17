@@ -19,4 +19,5 @@ dependencies:
   - cartopy
   - spatialpandas
   - uxarray
+  - hvplot
 prefix: /glade/work/ahijevyc/conda-envs/uxarray
