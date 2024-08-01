@@ -1,7 +1,8 @@
 import cartopy
 import numpy as np
-import xarray
 from cartopy.mpl.gridliner import LATITUDE_FORMATTER, LONGITUDE_FORMATTER
+import uxarray
+import xarray
 
 def mkcoord(ds):
     if "t_iso_levels" in ds:
@@ -19,12 +20,18 @@ def dec_ax(ax, extent):
     gl.yformatter = LATITUDE_FORMATTER
 
 
+def todBZ(Z):
+    dBZ = np.log10(Z) * 10
+    if hasattr(Z, "uxgrid"):
+        return uxarray.UxDataArray(dBZ, uxgrid=Z.uxgrid)
+    else:
+        return dBZ
+
 def dBZfunc(dBZ, func):
-    """mean of linearized Z, not logarithmic dbZ"""
+    """function of linearized Z, not logarithmic dbZ"""
     Z = 10 ** (dBZ / 10)
     fZ = func(Z)
-    return np.log10(fZ) * 10
-
+    return todBZ(fZ)
 
 def trim_ll(grid_path, data_paths, lon_bounds, lat_bounds):
     """
