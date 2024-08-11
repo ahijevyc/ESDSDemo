@@ -1,13 +1,18 @@
+import logging
+from pathlib import Path
+
 import cartopy
 import numpy as np
 from cartopy.mpl.gridliner import LATITUDE_FORMATTER, LONGITUDE_FORMATTER
+import pandas as pd
 import uxarray
 import xarray
 
-def mkcoord(ds):
-    if "t_iso_levels" in ds:
-        ds = ds.swap_dims(dict(nIsoLevelsT="t_iso_levels", nIsoLevelsZ="z_iso_levels"))
-    return ds
+def dBZfunc(dBZ, func):
+    """function of linearized Z, not logarithmic dbZ"""
+    Z = 10 ** (dBZ / 10)
+    fZ = func(Z)
+    return todBZ(fZ)
 
 
 def dec_ax(ax, extent):
@@ -20,6 +25,16 @@ def dec_ax(ax, extent):
     gl.yformatter = LATITUDE_FORMATTER
 
 
+def mkcoord(ds):
+    if "t_iso_levels" in ds:
+        ds = ds.swap_dims(dict(nIsoLevelsT="t_iso_levels"))
+    if "z_iso_levels" in ds:
+        ds = ds.swap_dims(dict(nIsoLevelsZ="z_iso_levels"))
+    if "u_iso_levels" in ds:
+        ds = ds.swap_dims(dict(nIsoLevelsU="u_iso_levels"))
+    return ds
+
+
 def todBZ(Z):
     dBZ = np.log10(Z) * 10
     if hasattr(Z, "uxgrid"):
@@ -27,11 +42,6 @@ def todBZ(Z):
     else:
         return dBZ
 
-def dBZfunc(dBZ, func):
-    """function of linearized Z, not logarithmic dbZ"""
-    Z = 10 ** (dBZ / 10)
-    fZ = func(Z)
-    return todBZ(fZ)
 
 def trim_ll(grid_path, data_paths, lon_bounds, lat_bounds):
     """
@@ -67,3 +77,45 @@ def trim_ll(grid_path, data_paths, lon_bounds, lat_bounds):
     ds = ds.where(ibox, drop=True)
 
     return grid_ds, ds
+    
+def xtime(ds: xarray.Dataset):
+    """convert xtime variable to datetime and assign to coordinate"""
+
+    # remove one-element-long Time dimension
+    ds = ds.squeeze(dim="Time", drop=True)
+
+    logging.info("decode initialization time variable")
+    initial_time = pd.to_datetime(
+        ds["initial_time"].load().item().decode("utf-8").strip(),
+        format="%Y-%m-%d_%H:%M:%S",
+    )
+
+    # assign initialization time variable to its own coordinate
+    ds = ds.assign_coords(
+        initial_time=(
+            ["initial_time"],
+            [initial_time],
+        ),
+    )
+
+    # extract member number from part of file path
+    # assign to its own coordinate
+    filename = Path(ds.encoding["source"])
+    mem = [p for p in filename.parts if p.startswith("mem")]
+    if mem:
+        mem = mem[0].lstrip("mem_")
+        mem = int(mem)
+        ds = ds.assign_coords(mem=(["mem"], [mem]))
+
+    logging.info("decode valid time and assign to variable")
+    valid_time = pd.to_datetime(
+        ds["xtime"].load().item().decode("utf-8").strip(),
+        format="%Y-%m-%d_%H:%M:%S",
+    )
+    ds = ds.assign(valid_time=[valid_time])
+
+    # calculate forecast hour and assign to variable
+    forecastHour = (valid_time - initial_time) / pd.to_timedelta(1, unit="hour")
+    ds = ds.assign(forecastHour=float(forecastHour))
+
+    return ds
