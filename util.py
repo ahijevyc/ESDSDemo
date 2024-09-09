@@ -77,7 +77,8 @@ def trim_ll(grid_path, data_paths, lon_bounds, lat_bounds):
     ds = ds.where(ibox, drop=True)
 
     return grid_ds, ds
-    
+
+
 def xtime(ds: xarray.Dataset):
     """convert xtime variable to datetime and assign to coordinate"""
 
