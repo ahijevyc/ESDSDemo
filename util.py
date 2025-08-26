@@ -13,7 +13,7 @@ def dBZfunc(dBZ, func):
     """function of linearized Z, not logarithmic dbZ"""
     Z = 10 ** (dBZ / 10)
     fZ = func(Z)
-    return todBZ(fZ)
+    return z_to_dbz(fZ)
 
 
 def dec_ax(ax, extent):
@@ -36,7 +36,7 @@ def mkcoord(ds):
     return ds
 
 
-def todBZ(Z):
+def z_to_dbz(Z):
     dBZ = np.log10(Z) * 10
     if hasattr(Z, "uxgrid"):
         return uxarray.UxDataArray(dBZ, uxgrid=Z.uxgrid)
